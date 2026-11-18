@@ -1,0 +1,9 @@
+# Stage 1: data collection and labeling
+requests
+beautifulsoup4
+lxml
+pandas
+python-dotenv
+tqdm
+openai
+pydantic
