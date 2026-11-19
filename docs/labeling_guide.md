@@ -55,6 +55,24 @@ late payments), appointments at government agencies, and anything not covered ab
   appointments are `other`.
 - Taxes or foreign anti-dumping duties are `macro_policy`, even when only one company
   is mentioned.
+- Forecasts or estimates by brokerages or other third parties are `other`. Plans or
+  targets announced by the company itself stay `business_results`.
+- News covering many companies or a whole sector is still labeled by its main
+  topic. (The event study later keeps only news tied to exactly one VN30 ticker.)
+- Foreign companies not listed in Vietnam are `other`.
+- A stock placed under warning, control or trading restriction is `legal_personnel`.
+- `legal_personnel` needs a specific company or one of its leaders (current or
+  former) as the subject. Criminal cases or scams not tied to a company are `other`.
+- `ma_investment` needs at least one Vietnamese company (listed or not) taking part.
+- Intentions or investments only "being considered" (not yet a decided event) are
+  `other`.
+- Sales contracts, orders, new flight routes or new stores (day-to-day business) are
+  `other`.
+- Profit from selling a stake (divestment gain) is `business_results`.
+- Forecasts of economic figures (GDP, exchange rate, growth) are `other`. Discussion
+  of, or proposals about, a specific policy are `macro_policy`.
+- Interest rates set by a single bank for its own products are `other`. Policy rates
+  or SBV directions on interest rates are `macro_policy`.
 
 ## Output
 Return the label and a short reason in English (under 15 words).
