@@ -1,19 +1,23 @@
 # Project Plan: Financial News Event Classifier
 
 ## Stage 0. Scope
-- 5 event types:
+- The model classifies news into 6 labels: 5 event types plus `other`.
   1. Business results
   2. Dividends and share issuance
   3. Macro policy
   4. M&A, investment, new projects
   5. Legal and personnel
+  6. Other: a real class the model learns and predicts, not just a filter
+     (about half of all news has no event of types 1-5).
 - VN30 basket fixed as of 03/08/2026 (`data/reference/vn30.csv`).
 
 ## Stage 1. Data
 - Scrape CafeF and VnExpress Kinh doanh automatically, from 01/11/2024 to 31/10/2026.
-- Store only: title, sapo (lead paragraph), datetime, link.
-- Collect 2,000-3,000 raw articles; select 500 (about 100 per event type).
-- LLM pre-labels, a human reviews.
+- Store only: source, section, title, sapo (lead paragraph), datetime, link.
+- Collected 4,125 raw articles; reviewed 500 LLM-labeled items (100 per event type)
+  plus 60 items the LLM labeled `other`. Items judged `other` stay in the training
+  set with the `other` label.
+- LLM pre-labels, a human reviews (process: `docs/data_process.md`).
 
 ## Stage 2. LLM baseline
 - Classification with OpenAI using structured output (Pydantic).
@@ -34,7 +38,7 @@
 
 ## Stage 6. Evaluation
 - PhoBERT vs. LLM: accuracy, speed, cost.
-- 20% held-out test set.
+- Blind test set: 100 hand-labeled items not used in training (see `docs/data_process.md`).
 - Statistical significance testing.
 
 ## Stage 7. Demo

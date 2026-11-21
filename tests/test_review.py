@@ -3,10 +3,12 @@ import pytest
 
 from src.classify.review import (
     FINAL_COLUMNS,
+    REVIEW_COLUMNS,
     add_url,
     merge_review,
     sample_blind_test,
     sample_for_review,
+    sample_other,
 )
 
 
@@ -39,7 +41,7 @@ def test_sample_for_review_takes_n_per_label_and_skips_other():
     assert "label" in df.columns  # input unchanged
 
 
-def test_merge_review_prefers_human_label_and_drops_other():
+def test_merge_review_prefers_human_label_and_keeps_other():
     review = pd.DataFrame(
         {
             "id": [1, 2, 3],
@@ -55,8 +57,12 @@ def test_merge_review_prefers_human_label_and_drops_other():
     )
     final = merge_review(review)
     assert final.columns.tolist() == FINAL_COLUMNS
-    assert final["id"].tolist() == [1, 3]
-    assert final["final_label"].tolist() == ["business_results", "legal_personnel"]
+    assert final["id"].tolist() == [1, 2, 3]
+    assert final["final_label"].tolist() == [
+        "business_results",
+        "other",
+        "legal_personnel",
+    ]
 
 
 def test_merge_review_rejects_unknown_human_label():
@@ -97,3 +103,15 @@ def test_sample_blind_test_skips_reviewed_and_other():
     assert test["llm_label"].tolist() != sorted(test["llm_label"])  # shuffled
     assert (test[["human_label", "tickers"]] == "").all().all()
     assert test.equals(sample_blind_test(df, exclude, per_label=2, seed=0))
+
+
+def test_sample_other_takes_only_unseen_other():
+    df = make_prelabeled()  # rows 8-11 are "other"
+    exclude = df.iloc[[8, 0]]
+    out = sample_other(df, exclude, n=2, seed=0, start_id=501)
+    assert out.columns.tolist() == REVIEW_COLUMNS
+    assert (out["llm_label"] == "other").all()
+    assert "t8" not in out["title"].tolist()
+    assert out["id"].tolist() == [501, 502]
+    assert (out["human_label"] == "").all()
+    assert out.equals(sample_other(df, exclude, n=2, seed=0, start_id=501))

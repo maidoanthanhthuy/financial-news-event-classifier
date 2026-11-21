@@ -20,6 +20,9 @@ LABELED_CSV = "data/labeled/news_labeled.csv"
 REVIEW_PER_LABEL = 100  # news items sampled per label (excluding "other")
 JOIN_KEYS = ["source", "published_at", "title"]  # unique per news item
 
+REVIEW_OTHER_CSV = "data/labeled/review_other.csv"
+OTHER_REVIEW_N = 60  # LLM "other" items sampled for review (6th label)
+
 TEST_BLIND_CSV = "data/labeled/test_blind.csv"
 TEST_LLM_CSV = "data/processed/test_llm_labels.csv"
 TEST_PER_LABEL = 20  # blind test items per label (excluding "other")
