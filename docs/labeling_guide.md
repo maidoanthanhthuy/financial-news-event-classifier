@@ -6,25 +6,29 @@ title**. Use the sapo (lead paragraph) only to clarify an unclear title.
 ## Labels
 
 ### `business_results`
-Revenue, profit or loss for a quarter or year; annual profit targets.
+Revenue, profit or loss for a quarter or year; plans, targets or estimates of
+results announced by the company itself.
 - "Vinamilk lãi 2.500 tỷ đồng quý III, tăng 12%" (Vinamilk earns VND 2.5 trillion in Q3, up 12%)
 - "Hòa Phát đặt mục tiêu lợi nhuận 15.000 tỷ đồng năm 2026" (Hoa Phat targets VND 15 trillion profit for 2026)
 
 ### `dividends_issuance`
-Cash or stock dividends, new share issuance, share buybacks (treasury shares).
+Cash or stock dividends, new share issuance (including charter capital increases),
+share buybacks (treasury shares).
 - "FPT chốt quyền trả cổ tức tiền mặt 20%" (FPT sets record date for a 20% cash dividend)
 - "Techcombank phát hành thêm 350 triệu cổ phiếu" (Techcombank issues 350 million new shares)
 
 ### `macro_policy`
 Interest rates, exchange rates, State Bank of Vietnam (SBV) decisions, inflation,
-GDP, tax policy, public investment. Taxes and tariffs set by foreign countries
+GDP, credit growth, tax policy, public investment. Data releases on credit, GDP
+and inflation belong here. Taxes and tariffs set by foreign countries
 (including anti-dumping duties) belong here too, even if the title names only one
 company.
 - "Ngân hàng Nhà nước giữ nguyên lãi suất điều hành" (SBV keeps policy rates unchanged)
 - "GDP quý III tăng 7,4%" (Q3 GDP grows 7.4%)
 
 ### `ma_investment`
-Mergers and acquisitions, buying stakes in other companies, new projects or plants.
+M&A and corporate investment: mergers and acquisitions, buying shares or stakes
+in other companies, new projects, plants and capacity expansion (greenfield).
 - "Masan mua 30% cổ phần chuỗi cà phê Phúc Long" (Masan buys a 30% stake in Phuc Long coffee chain)
 - "Vingroup khởi công nhà máy xe điện 4 tỷ USD" (Vingroup breaks ground on a USD 4 billion EV plant)
 
@@ -73,6 +77,15 @@ late payments), appointments at government agencies, and anything not covered ab
   of, or proposals about, a specific policy are `macro_policy`.
 - Interest rates set by a single bank for its own products are `other`. Policy rates
   or SBV directions on interest rates are `macro_policy`.
+
+- Results plans, targets or estimates: announced by the company itself ->
+  `business_results`; stated by a third party -> `other`. Judge by what is known
+  at the time the news was published.
+- A charter capital increase is share issuance -> `dividends_issuance`. Only
+  comparing or ranking companies by capital size is `other`.
+- Look-back pieces and general articles with no new event are `other`.
+- Daily USD prices (bank or black-market rates) are `other`. The SBV central
+  exchange rate or SBV exchange-rate policy is `macro_policy`.
 
 ## Output
 Return the label and a short reason in English (under 15 words).
