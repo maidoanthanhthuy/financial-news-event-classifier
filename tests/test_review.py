@@ -1,7 +1,13 @@
 import pandas as pd
 import pytest
 
-from src.classify.review import FINAL_COLUMNS, merge_review, sample_for_review
+from src.classify.review import (
+    FINAL_COLUMNS,
+    add_url,
+    merge_review,
+    sample_blind_test,
+    sample_for_review,
+)
 
 
 def make_prelabeled() -> pd.DataFrame:
@@ -40,6 +46,7 @@ def test_merge_review_prefers_human_label_and_drops_other():
             "source": "cafef",
             "published_at": "2025-01-01",
             "title": ["a", "b", "c"],
+            "url": ["ua", "ub", "uc"],
             "sapo": "s",
             "llm_label": ["business_results", "macro_policy", "ma_investment"],
             "reason": "r",
@@ -67,3 +74,26 @@ def test_merge_review_rejects_unknown_human_label():
     )
     with pytest.raises(ValueError, match=r"\[7\]"):
         merge_review(review)
+
+
+def test_add_url_matches_on_keys():
+    df = make_prelabeled().iloc[[3, 0]].drop(columns="url").assign(id=[1, 2])
+    out = add_url(df, make_prelabeled())
+    assert out["url"].tolist() == ["u3", "u0"]
+    with pytest.raises(ValueError, match="No url"):
+        add_url(df.assign(title=["t3", "missing"]), make_prelabeled())
+
+
+def test_sample_blind_test_skips_reviewed_and_other():
+    df = make_prelabeled()
+    exclude = df.iloc[[0, 1, 4]]  # two business_results, one macro_policy
+    test = sample_blind_test(df, exclude, per_label=2, seed=0)
+    assert test["llm_label"].value_counts().to_dict() == {
+        "business_results": 2,
+        "macro_policy": 2,
+    }
+    assert set(test["title"]) & set(exclude["title"]) == set()
+    assert test["id"].tolist() == [1, 2, 3, 4]
+    assert test["llm_label"].tolist() != sorted(test["llm_label"])  # shuffled
+    assert (test[["human_label", "tickers"]] == "").all().all()
+    assert test.equals(sample_blind_test(df, exclude, per_label=2, seed=0))
