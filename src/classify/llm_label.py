@@ -4,6 +4,7 @@ Usage: python -m src.classify.llm_label [--limit N]
 """
 
 import argparse
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -57,14 +58,40 @@ def pending_rows(
     return todo.sample(frac=1, random_state=seed).reset_index(drop=True)
 
 
-def label_one(client: OpenAI, title: str, sapo: str, guide: str) -> tuple:
-    """Ask the model for one label; return (NewsLabel or None, usage)."""
+@lru_cache(maxsize=1)
+def get_client() -> OpenAI:
+    """Return a shared OpenAI client (API key read from .env)."""
+    load_dotenv()
+    return OpenAI()
+
+
+def load_guide(path: str = GUIDE_PATH) -> str:
+    """Read the labeling guide used as the system prompt."""
+    return Path(path).read_text(encoding="utf-8")
+
+
+def classify_news(
+    title: str,
+    sapo: str,
+    client: OpenAI | None = None,
+    guide: str | None = None,
+    model: str = MODEL,
+) -> dict:
+    """Classify one news item into one of 6 labels; return label, reason, tokens."""
+    client = client or get_client()
+    guide = load_guide() if guide is None else guide
     resp = client.chat.completions.parse(
-        model=MODEL,
+        model=model,
         messages=build_messages(title, sapo, guide),
         response_format=NewsLabel,
     )
-    return resp.choices[0].message.parsed, resp.usage
+    parsed = resp.choices[0].message.parsed
+    return {
+        "label": parsed.label if parsed else None,
+        "reason": parsed.reason if parsed else None,
+        "input_tokens": resp.usage.prompt_tokens,
+        "output_tokens": resp.usage.completion_tokens,
+    }
 
 
 def main() -> None:
@@ -73,9 +100,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="items in this run")
     args = parser.parse_args()
 
-    load_dotenv()
-    client = OpenAI()
-    guide = Path(GUIDE_PATH).read_text(encoding="utf-8")
+    client, guide = get_client(), load_guide()
     out = Path(OUTPUT_CSV)
     out.parent.mkdir(parents=True, exist_ok=True)
     done = set(pd.read_csv(out, usecols=["url"])["url"]) if out.exists() else set()
@@ -83,22 +108,17 @@ def main() -> None:
     todo = pending_rows(pd.read_csv(INPUT_CSV), done).head(args.limit)
     total_in = total_out = 0
     for i, row in enumerate(todo.itertuples(index=False), start=1):
-        result, usage = label_one(client, row.title, row.sapo, guide)
-        total_in += usage.prompt_tokens
-        total_out += usage.completion_tokens
-        if result is None:
+        result = classify_news(row.title, row.sapo, client, guide)
+        total_in += result["input_tokens"]
+        total_out += result["output_tokens"]
+        if result["label"] is None:
             print(f"skip (no parsed answer): {row.url}")
             continue
-        record = row._asdict() | {
-            "label": result.label,
-            "reason": result.reason,
-            "input_tokens": usage.prompt_tokens,
-            "output_tokens": usage.completion_tokens,
-        }
+        record = row._asdict() | result
         pd.DataFrame([record]).to_csv(
             out, mode="a", header=not out.exists(), index=False
         )
-        print(f"{i}/{len(todo)} {result.label}: {row.title[:60]}")
+        print(f"{i}/{len(todo)} {result['label']}: {row.title[:60]}")
 
     cost = cost_usd(total_in, total_out)
     print(f"tokens in={total_in} out={total_out}, cost ${cost:.4f}")

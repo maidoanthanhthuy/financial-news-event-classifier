@@ -24,7 +24,8 @@ REVIEW_OTHER_CSV = "data/labeled/review_other.csv"
 OTHER_REVIEW_N = 60  # LLM "other" items sampled for review (6th label)
 
 TEST_BLIND_CSV = "data/labeled/test_blind.csv"
-TEST_LLM_CSV = "data/processed/test_llm_labels.csv"
+TEST_LLM_CSV = "data/processed/test_llm_labels.csv"  # draft labels, older guide
+TEST_LLM_V2_CSV = "data/processed/test_llm_v2.csv"  # classify_news, current guide
 TEST_PER_LABEL = 20  # blind test items per label (excluding "other")
 
 # USD per 1M tokens (aggregator sites, Nov 2026; check OpenAI's pricing page)
