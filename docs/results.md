@@ -113,3 +113,42 @@ the test tags are not fully independent, and only 14 items carry tickers.
   (`FPT`), because Masan and FPT are named in those titles.
 - On the blind test set it drops `CTG` from id 17 (named only in the sapo) and
   `HDB`, `TCB` from id 56 (keeps `VPB`); the other 12 tagged items are unchanged.
+
+## Stage 3: news explanation for beginners
+
+### Setup
+- `explain_news(title, sapo, label, tickers)` in `src/classify/explain.py` returns
+  at most 3 short Vietnamese sentences: what the news says (financial terms
+  explained in parentheses) and what a beginner should understand from it. No price
+  predictions, no buy/sell advice, no numbers that are not in the news.
+- Model gpt-6-luna with `reasoning_effort="none"` (no reasoning tokens). The system
+  prompt is `docs/explain_prompt.md`. Callers pass tickers from `main_tickers`.
+- Run: `python -m src.classify.explain` -> `data/processed/explain_samples.csv`
+  (local): 2 train items per event label (10 items, seed 42).
+
+### Prompt tuning on 10 train items
+The same 10 train items were used in every round; the explanations were read by
+hand.
+
+| Round | Prompt change | Cost (10 items) |
+|---|---|---|
+| v1 | First prompt: 2-3 sentences, explain terms, no prices or advice | $0.0015 |
+| v2 | Short sentences, no "Bài viết cho biết" openers, keep the news wording, `reasoning_effort="none"` | $0.0010 |
+| v3 | Explain only specialist financial terms, keep all title details, never comment on missing information | $0.0011 |
+| v4 (final) | One worked example, terms in parentheses right after the word, title details only, concrete last sentence, neutral wording for sensational headlines | $0.0013 |
+
+- v1 issues: long sentences joined by semicolons, generic openers, unexplained
+  terms, one reinterpreted phrase ("trữ 12.000 tỷ" written as "dành"), and
+  reasoning tokens up to 4x the visible text.
+- v2 and v3 fixed openers and term notes, but the model dropped title details to
+  avoid wording problems, still used semicolons, and its closing sentences were
+  generic.
+
+### Remaining limitations (v4)
+- **Sometimes changes the original wording**: "cầm khối tiền" became "trữ" (id 24),
+  likely copied from the "trữ" example in the prompt.
+- **Drops minor details**: id 308 lost "5,4 tỷ tấn, hơn 1.500 năm" and rewrote
+  "quả đấm thép" as "dự án".
+- **Closing sentences repeat one pattern**: 7 of 10 end with "nên hiểu đây là X,
+  không phải Y". Correct, but repetitive across many items.
+- Only 10 items were checked by hand. There is no automatic check of the output.

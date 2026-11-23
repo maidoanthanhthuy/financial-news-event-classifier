@@ -36,3 +36,10 @@ VN30_ALIASES_CSV = "data/reference/vn30_aliases.csv"  # blank ticker = blocked n
 TICKER_SEP = ";"
 TICKER_CHECK_CSV = "data/processed/ticker_check.csv"
 TICKER_CHECK_N = 20  # train items sampled with and without predicted tickers
+
+EXPLAIN_PROMPT_PATH = "docs/explain_prompt.md"
+EXPLAIN_SAMPLES_CSV = "data/processed/explain_samples.csv"
+EXPLAIN_PER_LABEL = 2  # train items per event label in the explanation trial
+EXPLAIN_REASONING_EFFORT = (
+    "none"  # lowest level gpt-6-luna accepts (0 reasoning tokens)
+)
