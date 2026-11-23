@@ -19,4 +19,4 @@ PATIENCE = 2  # epochs without macro-F1 gain before early stopping
 WEIGHT_DECAY = 0.01
 
 OUTPUT_DIR = "models/phobert"
-HF_REPO_ID = "maidoanthanhthuy/phobert-vn30-news-events"  # change to your HF user
+HF_REPO_ID = "MaiDoanThanhThuy/phobert-vn30-news-events"
