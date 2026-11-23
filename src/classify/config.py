@@ -43,3 +43,9 @@ EXPLAIN_PER_LABEL = 2  # train items per event label in the explanation trial
 EXPLAIN_REASONING_EFFORT = (
     "none"  # lowest level gpt-6-luna accepts (0 reasoning tokens)
 )
+
+OTHER_LABEL = "other"
+OTHER_EXPLANATION = (
+    "Tin này không thuộc 5 loại sự kiện doanh nghiệp mà công cụ theo dõi."
+)
+PIPELINE_TRIAL_N = 4  # event items in the pipeline trial (plus 1 "other" item)

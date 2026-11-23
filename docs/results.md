@@ -152,3 +152,43 @@ hand.
 - **Closing sentences repeat one pattern**: 7 of 10 end with "nên hiểu đây là X,
   không phải Y". Correct, but repetitive across many items.
 - Only 10 items were checked by hand. There is no automatic check of the output.
+
+## Stage 3: LangGraph pipeline
+
+### Setup
+- `src/classify/pipeline.py`, state: title, sapo, label, reason, tickers,
+  main_tickers, explanation.
+- Nodes: `classify` (`classify_news`) -> `tickers` (`extract_tickers` and
+  `main_tickers`) -> branch: label `other` goes to a fixed explanation ("Tin này
+  không thuộc 5 loại sự kiện doanh nghiệp mà công cụ theo dõi.") and ends; any
+  other label goes to `explain` (`explain_news`, given `main_tickers`).
+- `run_pipeline(title, sapo)` returns the final state for the app.
+- The LLM functions are passed to `build_graph`, so tests replace them with fakes
+  and run without an API key (both branches tested).
+- Run: `python -m src.classify.pipeline` (4 random event items and 1 `other` item
+  from the train set, seed 42, real API calls).
+
+### Trial on 5 train items
+All 5 predicted labels match the human labels.
+
+| id | Human label | Predicted | main_tickers | Time | LLM calls | Cost |
+|---|---|---|---|---|---|---|
+| 133 | dividends_issuance | dividends_issuance | - | 5.0 s | 2 | $0.00033 |
+| 32 | business_results | business_results | - | 5.2 s | 2 | $0.00034 |
+| 211 | legal_personnel | legal_personnel | - | 4.2 s | 2 | $0.00031 |
+| 487 | macro_policy | macro_policy | - | 5.2 s | 2 | $0.00038 |
+| 539 | other | other | STB | 1.6 s | 1 | $0.00021 |
+
+- An event item takes about 4-5 s and $0.0003 (two sequential API calls); an
+  `other` item takes about 1.6 s and $0.0002 (classification only).
+- Every number and detail in the explanations appears in the title or sapo.
+- 5 items is a small trial; the 4 event items include no `ma_investment` item.
+
+### Limitations
+- **The prompt is not always followed**: id 211 ends by saying the news does not
+  name the appointed people (comments on missing information are forbidden); id
+  487 lists 7 place names from the sapo and says "gồm" although the news mentions
+  10 areas.
+- **Title-based rules can miss sapo details**: id 539 is labeled `other` (the title
+  is about staff cuts), but the sapo also says Sacombank plans to buy a securities
+  company, which could be an `ma_investment` event.
