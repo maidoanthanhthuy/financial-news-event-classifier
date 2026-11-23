@@ -53,3 +53,7 @@ PIPELINE_TRIAL_N = 4  # event items in the pipeline trial (plus 1 "other" item)
 TEST_PHOBERT_CSV = "data/processed/test_phobert.csv"  # seed 44 from the Hub, CPU
 BOOTSTRAP_N = 10_000  # resamples for macro-F1 confidence intervals
 BOOTSTRAP_SEED = 42
+
+TEST_PIPELINE_CSV = "data/processed/test_pipeline.csv"  # run_pipeline on test set
+EXPLAIN_REVIEW_CSV = "data/processed/explain_review.csv"
+EXPLAIN_REVIEW_N = 20  # non-"other" test items sampled for manual review

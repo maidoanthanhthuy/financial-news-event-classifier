@@ -92,6 +92,17 @@ def run_pipeline(title: str, sapo: str, graph=None) -> dict:
     return graph.invoke({"title": title, "sapo": sapo})
 
 
+def count_usage(fn: Callable, usage: list) -> Callable:
+    """Wrap an LLM function so each call appends (input, output) tokens to usage."""
+
+    def wrapper(*args):
+        res = fn(*args)
+        usage.append((res["input_tokens"], res["output_tokens"]))
+        return res
+
+    return wrapper
+
+
 def main() -> None:
     """Run the real pipeline on train items and print results, time and cost."""
     df = pd.read_csv(LABELED_CSV)
@@ -103,16 +114,11 @@ def main() -> None:
         ]
     )
     usage = []
-
-    def counted(fn: Callable) -> Callable:
-        def wrapper(*args):
-            res = fn(*args)
-            usage.append((res["input_tokens"], res["output_tokens"]))
-            return res
-
-        return wrapper
-
-    graph = build_graph(counted(classify_news), counted(explain_news), load_aliases())
+    graph = build_graph(
+        count_usage(classify_news, usage),
+        count_usage(explain_news, usage),
+        load_aliases(),
+    )
     for row in items.itertuples(index=False):
         usage.clear()
         start = time.perf_counter()

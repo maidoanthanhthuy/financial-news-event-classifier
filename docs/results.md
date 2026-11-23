@@ -321,3 +321,43 @@ PhoBERT confusion matrix (rows = human label, columns = PhoBERT):
 - Test sizes are small (7 `ma_investment`, 21 `other` items), so per-label scores
   move a lot with a few items.
 - The model and training setup were not changed based on these test results.
+
+## Stage 6: explanation quality on the blind test set
+
+### Setup
+- `python -m src.classify.explain_review` runs `run_pipeline` on all 100 test items
+  (`data/processed/test_pipeline.csv`, local) and samples 20 items the pipeline did
+  not label `other` (seed 42) into `data/processed/explain_review.csv` (local).
+- Cost: $0.0319 for 100 items (180 LLM calls: 100 classifications, 80
+  explanations), about $0.0004 per event item.
+- In this run 20 items were labeled `other` and classification accuracy was 0.78
+  (0.80 in the earlier LLM run): the LLM is not fully deterministic.
+- The 20 explanations were graded on `correct` (faithful to the news, nothing
+  invented) and `no_advice` (no price prediction, no buy/sell advice). An LLM
+  assistant proposed the grades; the author checked them and made the final
+  decisions (id 40 was changed from error to omission). A third
+  column, `easy`, was filled but is not used.
+
+### Results
+
+| Criterion | Pass |
+|---|---|
+| correct | **18 of 20 (90%)** |
+| no_advice | **20 of 20 (100%)** |
+
+Errors:
+- id 37: calls Vingroup's divestment gain "tiền thu được từ việc bán vốn"
+  (proceeds); a gain is not the money received.
+- id 54: says the company estimates the 50 billion dong dividend payout; in the
+  sapo the estimate is the article's.
+
+Minor issues (graded as pass, noted in the file):
+- id 40 covers only a detail from the sapo and drops the title's main points
+  (counted as an omission, not an error).
+- 2 items have a wrong event label from the classifier (ids 13, 88; human label
+  `other`); only the explanation was graded.
+- 3 items still comment on missing information although the prompt forbids it
+  (ids 26, 67, 88).
+- 3 items have a generic or repeated last sentence (ids 5, 11, 34).
+- Some terms are not explained: "Quyền Tổng Giám đốc", "niên độ", "thị giá".
+- 20 items is a small sample, graded once.
