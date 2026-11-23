@@ -192,3 +192,34 @@ All 5 predicted labels match the human labels.
 - **Title-based rules can miss sapo details**: id 539 is labeled `other` (the title
   is about staff cuts), but the sapo also says Sacombank plans to buy a securities
   company, which could be an `ma_investment` event.
+
+## Stage 4: fine-tuned PhoBERT
+
+### Setup
+- Model `vinai/phobert-base-v2`, 6 labels, trained on `data/labeled/news_labeled.csv`
+  (560 items). Input: title + sapo, word-segmented with underthesea,
+  `max_length=128` (longest item is 105 tokens, so nothing is truncated).
+- Split: 85/15 by label with a fixed seed (42): 476 train, 84 validation items.
+  The split is the same for every run; the training seed changes only model
+  initialization and data order.
+- Training (`src/finetune/train.py`): learning rate 2e-5, batch size 16, at most 10
+  epochs, weight decay 0.01, early stopping on validation macro-F1 (patience 2),
+  best epoch kept. Run on Colab (T4 GPU) with `notebooks/finetune_colab.ipynb`.
+
+### Validation results (3 seeds)
+
+| Seed | Macro-F1 | Accuracy | Best epoch | Epochs run |
+|---|---|---|---|---|
+| 42 | 0.830 | 0.845 | 8 | 10 |
+| 43 | 0.840 | 0.857 | 6 | 8 |
+| 44 | 0.851 | 0.869 | 5 | 7 |
+
+- Validation macro-F1: **0.841 ± 0.010** (mean ± sample std over 3 seeds).
+- Seed 44 is the best run and is published on the Hugging Face Hub as
+  `MaiDoanThanhThuy/phobert-vn30-news-events`; `predict_phobert(title, sapo)` in
+  `src/finetune/predict.py` loads it from there.
+- Seed 42 used all 10 epochs (best at epoch 8), so early stopping did not trigger
+  for that run.
+- **The validation score is slightly optimistic**: the same 84 validation items
+  were used to pick the best epoch and the best seed. The blind test set has not
+  been used yet; its score is the one to compare with the LLM baseline.
