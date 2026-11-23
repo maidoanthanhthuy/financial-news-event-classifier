@@ -1,8 +1,10 @@
 """Predict the event label of a news item with the fine-tuned PhoBERT model."""
 
+import time
 from functools import lru_cache
 
 import numpy as np
+import pandas as pd
 
 from src.finetune.config import HF_REPO_ID, MAX_LENGTH
 from src.finetune.data import build_text, underthesea_segment
@@ -45,3 +47,21 @@ def predict_phobert(
     with torch.no_grad():
         logits = model(**enc).logits[0].numpy()
     return to_result(logits, model.config.id2label)
+
+
+def predict_frame(
+    df: pd.DataFrame, repo_id: str = HF_REPO_ID, max_length: int = MAX_LENGTH
+) -> pd.DataFrame:
+    """Predict every row (id, title, sapo); one row per item with probs and seconds.
+
+    The model is loaded before timing, so `seconds` is segmentation + inference.
+    """
+    load_model(repo_id)
+    rows = []
+    for row in df.itertuples(index=False):
+        start = time.perf_counter()
+        res = predict_phobert(row.title, row.sapo, repo_id, max_length)
+        secs = time.perf_counter() - start
+        probs = {f"prob_{k}": v for k, v in res["probs"].items()}
+        rows.append({"id": row.id, "label": res["label"]} | probs | {"seconds": secs})
+    return pd.DataFrame(rows)

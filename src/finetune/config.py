@@ -1,6 +1,6 @@
 """Settings for PhoBERT fine-tuning."""
 
-from src.classify.config import LABELED_CSV, LABELS
+from src.classify.config import LABELED_CSV, LABELS, TEST_BLIND_CSV
 
 MODEL_NAME = "vinai/phobert-base-v2"
 LABEL2ID = {lab: i for i, lab in enumerate(LABELS)}
@@ -20,3 +20,6 @@ WEIGHT_DECAY = 0.01
 
 OUTPUT_DIR = "models/phobert"
 HF_REPO_ID = "MaiDoanThanhThuy/phobert-vn30-news-events"
+
+TEST_CSV = TEST_BLIND_CSV
+TEST_PHOBERT_CSV = "data/processed/test_phobert.csv"  # seed 44 from the Hub, CPU
