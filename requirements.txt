@@ -8,3 +8,4 @@ tqdm
 openai
 pydantic
 langgraph
+underthesea
