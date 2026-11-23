@@ -31,3 +31,8 @@ TEST_PER_LABEL = 20  # blind test items per label (excluding "other")
 # USD per 1M tokens (aggregator sites, Nov 2026; check OpenAI's pricing page)
 PRICE_INPUT = 0.10
 PRICE_OUTPUT = 0.50
+
+VN30_ALIASES_CSV = "data/reference/vn30_aliases.csv"  # blank ticker = blocked name
+TICKER_SEP = ";"
+TICKER_CHECK_CSV = "data/processed/ticker_check.csv"
+TICKER_CHECK_N = 20  # train items sampled with and without predicted tickers

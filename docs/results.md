@@ -66,3 +66,50 @@ guide (`data/processed/test_llm_labels.csv`, local).
 
 The draft run had the opposite habit: it labeled many `other` items as
 `ma_investment`.
+
+## Stage 3: VN30 ticker extraction (dictionary)
+
+### Setup
+- `extract_tickers(title, sapo, aliases)` in `src/classify/tickers.py` matches the
+  alias dictionary `data/reference/vn30_aliases.csv` (ticker, company names and
+  common names, both tone-mark styles such as Hòa/Hoà).
+- All-caps aliases (tickers, BIDV, TCBS, MB) must match case and stand alone, so
+  "gas" does not match `GAS`; names match without case. Text is NFC-normalized.
+- The longest alias wins ("Masan Consumer" -> `MCH`, not also `MSN`). Rows with an
+  empty ticker block names of companies outside VN30 that contain a VN30 name
+  (e.g. FPT Shop, FPT Long Châu, Masan MEATLife, Chứng khoán BIDV, The CrownX).
+- Run: `python -m src.classify.tickers` (blind test set) and
+  `python -m src.classify.tickers check` (train sample).
+
+### Blind test set (100 items, `tickers` column)
+Precision 1.00, recall 1.00, 100 of 100 items match exactly (14 items have
+tickers). The dictionary was not changed based on test-set errors. The name table
+in `data_process.md` was written while tagging the test set, so the dictionary and
+the test tags are not fully independent, and only 14 items carry tickers.
+
+### Manual check on train items (40 items)
+- `extract_tickers` finds tickers in 89 of 560 train items. A random sample (seed
+  42) of 20 items with tickers and 20 without was checked by hand against the
+  tagging rules in `data_process.md`.
+- Before the fix: precision 0.96 (24 of 25 predicted tickers correct), 39 of 40
+  items exact. The one error: id 325, "The CrownX (TCX)" (a Masan subsidiary)
+  matched the `TCX` ticker. Fixed by adding "The CrownX" and "The CrownX (TCX)"
+  to the blocked names; after the fix all 40 items match. The fix was made on this
+  same sample, so the 40/40 is not an independent score.
+- **Recall 1.00 holds only for the 20 sampled items without tickers** (none of them
+  names a VN30 company). It is not a recall estimate for the full train set,
+  because the sample was split by predicted tickers.
+- In 4 items the company is named, so the tag is correct under the rules, but it is
+  not the main subject of the news: id 194 (Xanh SM; Vingroup named in the sapo),
+  132 (a Masan member company), 274 (VinSpace; new CEO formerly at FPT) and 396
+  (Aeon Financial; SeABank's finance company). Such items add noise to the event
+  study.
+
+### `main_tickers`: tickers named in the title
+- `main_tickers(title, sapo, aliases)` keeps only the tickers from
+  `extract_tickers` whose name or ticker appears in the title. `extract_tickers`
+  is unchanged.
+- Of the 4 items above, it drops 194 and 396 but keeps 132 (`MSN`) and 274
+  (`FPT`), because Masan and FPT are named in those titles.
+- On the blind test set it drops `CTG` from id 17 (named only in the sapo) and
+  `HDB`, `TCB` from id 56 (keeps `VPB`); the other 12 tagged items are unchanged.
