@@ -223,3 +223,101 @@ All 5 predicted labels match the human labels.
 - **The validation score is slightly optimistic**: the same 84 validation items
   were used to pick the best epoch and the best seed. The blind test set has not
   been used yet; its score is the one to compare with the LLM baseline.
+
+## Stage 6: PhoBERT vs. LLM on the blind test set
+
+### PhoBERT, 3 seeds (Colab, `notebooks/finetune_colab.ipynb`)
+
+| Seed | Accuracy | Macro-F1 |
+|---|---|---|
+| 42 | 0.800 | 0.768 |
+| 43 | 0.820 | 0.788 |
+| 44 | 0.800 | 0.767 |
+
+- Test accuracy **0.807 ± 0.012**, macro-F1 **0.774 ± 0.012** (mean ± sample std).
+- **Seed 44 was the best seed on validation (macro-F1 0.851) but is the weakest on
+  test** (0.767, just below seed 42 at 0.768). The ranking of seeds on 84
+  validation items does not carry over to the test set; the seed differences are
+  within noise.
+- Seed 44 stays the published model: it was chosen on validation. Seed 43 scores
+  higher on test, but switching to it would mean choosing a model on the test set.
+- **`other` recall is low in all 3 seeds**: 0.381 (seed 42), 0.333 (43), 0.286 (44).
+- The seed 44 scores on Colab (GPU) match the laptop run (CPU, model from the Hub)
+  exactly, so the published model is the one trained on Colab.
+
+### Published model (seed 44) vs. LLM v2
+Run on a laptop: `python -m src.finetune.test_phobert` ->
+`data/processed/test_phobert.csv` (local).
+
+| Label | PhoBERT F1 | LLM v2 F1 | Support |
+|---|---|---|---|
+| business_results | 0.878 | 0.878 | 18 |
+| dividends_issuance | 0.944 | 0.974 | 19 |
+| macro_policy | 0.923 | 0.743 | 20 |
+| ma_investment | 0.545 | 0.714 | 7 |
+| legal_personnel | 0.882 | 0.938 | 15 |
+| other | 0.429 | 0.513 | 21 |
+| **Accuracy** | 0.800 | 0.800 | 100 |
+| **Macro-F1** | 0.767 | 0.793 | 100 |
+
+PhoBERT confusion matrix (rows = human label, columns = PhoBERT):
+
+| | business_results | dividends_issuance | macro_policy | ma_investment | legal_personnel | other |
+|---|---|---|---|---|---|---|
+| business_results | 18 | 0 | 0 | 0 | 0 | 0 |
+| dividends_issuance | 0 | 17 | 0 | 1 | 0 | 1 |
+| macro_policy | 0 | 0 | 18 | 1 | 1 | 0 |
+| ma_investment | 0 | 0 | 0 | 6 | 1 | 0 |
+| legal_personnel | 0 | 0 | 0 | 0 | 15 | 0 |
+| other | 5 | 0 | 1 | 7 | 2 | 6 |
+
+### Is the difference significant?
+`python -m src.classify.compare` (PhoBERT seed 44 = a, LLM v2 = b, same 100 items).
+
+- **McNemar test (exact)**: both correct 72, both wrong 12, only PhoBERT correct
+  8, only LLM correct 8, p = 1.00. The two models make the same number of errors,
+  just on different items.
+- **Bootstrap (10,000 resamples of the 100 items, seed 42), 95% percentile CIs**:
+
+| | Macro-F1 | 95% CI |
+|---|---|---|
+| PhoBERT (seed 44) | 0.767 | 0.681 - 0.840 |
+| LLM v2 | 0.793 | 0.697 - 0.865 |
+| Difference (PhoBERT - LLM) | -0.026 | -0.112 - 0.064 |
+
+- The CI of the difference contains 0 (PhoBERT is ahead in 28% of resamples).
+  **On 100 test items there is no significant difference** between the two models
+  in accuracy or macro-F1. The test set is too small to separate them; a
+  difference of about 0.1 macro-F1 would be needed to be detectable.
+
+### Cost and speed
+
+| | PhoBERT (seed 44) | LLM v2 (gpt-6-luna) |
+|---|---|---|
+| Time per item | 0.045 s (mean, median 0.039 s; laptop CPU, 16 threads) | 2.5 s (mean, median 2.3 s, range 1.5-4.7 s; 20 test items) |
+| Time for 1,000 items | about 45 s | about 42 min (one call at a time) |
+| Cost for 1,000 items | $0 (local CPU; training on free Colab GPU) | about $0.22 (from the 100-item run, $0.0225) |
+
+- LLM times were measured separately on the first 20 test items (cost $0.0044),
+  because the earlier test run did not record time. They include network delay.
+- The gpt-6-luna price comes from aggregator sites and is not yet checked on
+  OpenAI's pricing page.
+- LLM calls could run in parallel to cut the wall time; the cost stays the same.
+
+### Findings
+- **Same accuracy, lower macro-F1 for PhoBERT** (0.767 vs. 0.793). Over 3 seeds the
+  PhoBERT macro-F1 is 0.774 ± 0.012, still below the LLM, but the difference is
+  not significant on 100 items (McNemar p = 1.00, bootstrap CI includes 0).
+- **PhoBERT is about 55x faster and free to run**, so for a large volume of news it
+  is the practical choice if its accuracy is acceptable.
+- **PhoBERT is better on `macro_policy`** (18 of 20 correct; the LLM moved 7 of 20
+  to `other`).
+- **PhoBERT's main weakness is `other`**: recall 0.29 to 0.38 across seeds. In seed
+  44, 15 of 21 `other` items get an event label, 7 of them `ma_investment` (news
+  with words like "dự án", "mở rộng", "ký thỏa thuận": ids 13, 17, 25, 38, 69, 77,
+  81). This drops `ma_investment` precision to about 0.40 in every seed.
+- **This weakness matters more on real data**: about 54% of raw news is `other`,
+  against 21% in the test set and 18% in the training set (101 of 560).
+- Test sizes are small (7 `ma_investment`, 21 `other` items), so per-label scores
+  move a lot with a few items.
+- The model and training setup were not changed based on these test results.
