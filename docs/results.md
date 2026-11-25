@@ -1,8 +1,10 @@
 # Results
 
-All scores are on the blind test set `data/labeled/test_blind.csv` (100 items,
-human labels, see [data_process.md](data_process.md)). Metrics come from
-`python -m src.classify.evaluate`.
+Classification scores (Stages 2, 4 and 6) are on the blind test set
+`data/labeled/test_blind.csv` (100 items, human labels, see
+[data_process.md](data_process.md)), from `python -m src.classify.evaluate`.
+Stage 5 (event study) uses 169 news events with human or LLM labels; see its
+Setup section.
 
 ## Stage 2: LLM baseline
 

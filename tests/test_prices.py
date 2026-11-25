@@ -1,6 +1,10 @@
 import pandas as pd
 
-from src.event_study.fetch_prices import looks_truncated, summarize_payload
+from src.event_study.fetch_prices import (
+    looks_truncated,
+    summarize_payload,
+    year_ranges,
+)
 from src.event_study.load_prices import (
     combine_prices,
     coverage,
@@ -84,3 +88,13 @@ def test_late_starters_counts_events():
     out = late_starters(coverage(prices), events, cutoff="2024-11-01")
     assert out["ticker"].tolist() == ["NEW"]
     assert out[["events", "before_first_price"]].values.tolist() == [[2, 1]]
+
+
+def test_year_ranges_split_at_year_end():
+    start, end = pd.Timestamp("2024-09-01").date(), pd.Timestamp("2026-03-10").date()
+    out = [(s.isoformat(), e.isoformat()) for s, e in year_ranges(start, end)]
+    assert out == [
+        ("2024-09-01", "2024-12-31"),
+        ("2025-01-01", "2025-12-31"),
+        ("2026-01-01", "2026-03-10"),
+    ]

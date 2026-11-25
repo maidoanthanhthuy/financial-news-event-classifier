@@ -5,6 +5,7 @@ from src.classify.review import (
     FINAL_COLUMNS,
     REVIEW_COLUMNS,
     add_url,
+    is_seen,
     merge_review,
     sample_blind_test,
     sample_for_review,
@@ -115,3 +116,9 @@ def test_sample_other_takes_only_unseen_other():
     assert out["id"].tolist() == [501, 502]
     assert (out["human_label"] == "").all()
     assert out.equals(sample_other(df, exclude, n=2, seed=0, start_id=501))
+
+
+def test_is_seen_matches_on_all_keys():
+    df = pd.DataFrame({"source": ["a", "a", "b"], "title": ["x", "y", "x"]})
+    exclude = pd.DataFrame({"source": ["a", "a"], "title": ["x", "x"]})
+    assert is_seen(df, exclude, ["source", "title"]).tolist() == [True, False, False]
