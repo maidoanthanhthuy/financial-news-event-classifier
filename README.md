@@ -110,7 +110,7 @@ DuckDB + SQL (event study), SciPy, Streamlit, pytest + ruff + GitHub Actions.
 ## How to run
 
 ```bash
-conda create -n financial-news python=3.12 && conda activate financial-news
+conda create -n financial-news python=3.11 && conda activate financial-news
 pip install -r requirements.txt -r requirements-dev.txt
 echo "OPENAI_API_KEY=sk-..." > .env
 
