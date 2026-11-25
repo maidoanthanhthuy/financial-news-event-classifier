@@ -12,3 +12,4 @@ underthesea
 duckdb
 scipy
 matplotlib
+streamlit
