@@ -34,7 +34,7 @@
 ## Stage 5. Event study
 - Abnormal returns vs. VN-Index after 1, 3 and 5 trading sessions.
 - News published after market close counts from the next session.
-- Reuse the PostgreSQL database and price data from Project 2.
+- Daily adjusted prices from the KBS API (same calls as Project 2), stored in DuckDB.
 
 ## Stage 6. Evaluation
 - PhoBERT vs. LLM: accuracy, speed, cost.
