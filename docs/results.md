@@ -224,6 +224,87 @@ All 5 predicted labels match the human labels.
   were used to pick the best epoch and the best seed. The blind test set has not
   been used yet; its score is the one to compare with the LLM baseline.
 
+## Stage 5: event study
+
+### Setup
+
+- Events: raw news with exactly one main VN30 ticker (422 items), labeled by a
+  human where available (74) and by the LLM otherwise (348). `other` and
+  `macro_policy` (5 items) are dropped. Same ticker and label news less than 7
+  calendar days apart are merged (first kept): 175 events, 28 tickers
+  (`python -m src.event_study.build_events events`).
+- Prices: daily adjusted closes from the KBS API, 2024-09-04 to 2026-11-10, for
+  the event tickers and VNINDEX, loaded into DuckDB
+  (`src/event_study/fetch_prices.py`, `load_prices.py`). 6 events published
+  before the stock was listed (TCX 5, VPL 1) are dropped: **169 events**.
+- Trading calendar = dates with a VNINDEX price. Session 0 = first session on or
+  after the publication date; news after 15:00 counts from the next day.
+- Abnormal return (AR) for k = 1, 3, 5 = stock return minus VNINDEX return,
+  from the close of session -1 to the close of session k-1
+  (`src/event_study/event_returns.sql`). All 169 events have all 3 windows.
+- By label and k: mean, median, sd, share of AR > 0, 95% t-based CI, one-sample
+  t-test and Wilcoxon signed-rank test against 0 (`src/event_study/summary.py`,
+  `data/processed/event_summary.csv`, `notebooks/event_study.ipynb`).
+- Robustness: the same statistics without VIC, the most frequent ticker
+  (32 of the 169 events: 20 `ma_investment`, 9 `business_results`, 3
+  `dividends_issuance`).
+
+### All events (169)
+
+Mean AR in %, then p-values: t-test / Wilcoxon.
+
+| Label | n | k = 1 | k = 3 | k = 5 |
+|---|---|---|---|---|
+| business_results | 65 | -0.16 (0.445 / 0.390) | -0.49 (0.178 / 0.054) | -0.10 (0.831 / 0.688) |
+| dividends_issuance | 33 | +0.10 (0.744 / 0.502) | +0.60 (0.348 / 0.584) | +0.18 (0.851 / 0.874) |
+| legal_personnel | 22 | -0.09 (0.847 / 0.566) | -0.25 (0.804 / 0.545) | -0.24 (0.855 / 0.633) |
+| ma_investment | 49 | -0.02 (0.951 / 0.168) | -0.50 (0.132 / 0.108) | -0.29 (0.635 / 0.235) |
+
+### Without VIC (137)
+
+| Label | n | k = 1 | k = 3 | k = 5 |
+|---|---|---|---|---|
+| business_results | 56 | -0.16 (0.441 / 0.396) | -0.41 (0.261 / 0.090) | -0.10 (0.842 / 0.738) |
+| dividends_issuance | 30 | -0.05 (0.857 / 0.360) | +0.15 (0.768 / 0.871) | -0.27 (0.712 / 0.730) |
+| legal_personnel | 22 | -0.09 (0.847 / 0.566) | -0.25 (0.804 / 0.545) | -0.24 (0.855 / 0.633) |
+| ma_investment | 29 | +0.04 (0.905 / 0.213) | -0.78 (0.038 / 0.018) | -1.05 (0.053 / 0.039) |
+
+VIC has no `legal_personnel` event, so that row does not change.
+
+### Findings
+
+- **No label has a mean AR clearly different from 0.** In the full sample every
+  95% CI contains 0, mean ARs are small (at most 0.6%) next to their sd
+  (1.7-6.0%), and the share of positive ARs is 32-55%.
+- **M&A news without VIC is only a hint.** Its AR is negative at k = 3 (-0.78%,
+  t-test p = 0.038, Wilcoxon p = 0.018) and borderline at k = 5. There are 12
+  tests per sample (4 labels x 3 windows), 24 in total, so 1-2 values below 0.05
+  are expected by chance. With a Bonferroni correction (0.05 / 12 = 0.0042) no
+  result is significant. The 20 VIC M&A events have a mean AR near 0 at k = 3
+  (-0.09%) and positive at k = 5 (+0.81%), so the result depends on whether one
+  ticker is included.
+- Wilcoxon p-values are often lower than t-test p-values (e.g.
+  `business_results` k = 3: 0.054 vs. 0.178): most ARs are slightly negative
+  (median below 0) while a few large positive ARs pull the mean toward 0.
+
+### Why no clear effect
+
+1. **Good and bad news share a label and cancel out.** `business_results`
+   holds both record profits and losses; `ma_investment` holds both purchases
+   and divestments. The label gives the event type, not its direction.
+2. **Prices may react before the news is published.** Results, dividends and
+   deals are often expected or leaked; session -1 may already include the move.
+3. **Small samples and noisy labels.** 22-65 events per label, and 79% of the
+   labels come from the LLM (about 80% accurate on the blind test set), so some
+   events sit in the wrong group and dilute any effect.
+
+### Next steps
+
+- Add a good/bad sentiment label per news item and measure AR by event type and
+  direction.
+- Measure a pre-event window (e.g. sessions -5 to -1) to see if prices move
+  before publication.
+
 ## Stage 6: PhoBERT vs. LLM on the blind test set
 
 ### PhoBERT, 3 seeds (Colab, `notebooks/finetune_colab.ipynb`)

@@ -49,3 +49,8 @@ LATE_START_CUTOFF = "2024-11-01"  # tickers whose prices start after this
 WINDOWS = [1, 3, 5]  # k: close of session -1 to close of session k-1
 MARKET_CLOSE = "15:00:00"  # news after this local time counts from the next day
 EVENT_RETURNS_CSV = "data/processed/event_returns.csv"
+
+# Summary by label (src/event_study/summary.py)
+EVENT_SUMMARY_CSV = "data/processed/event_summary.csv"  # committed; read by the app
+CONFIDENCE = 0.95
+ROBUST_EXCLUDE = ["VIC"]  # most frequent ticker; rerun without it
