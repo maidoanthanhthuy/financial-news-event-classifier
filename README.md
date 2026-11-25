@@ -11,17 +11,39 @@ item in plain Vietnamese for beginner investors.
 
 <img src="docs/app_screenshot.png" alt="App screenshot" width="600">
 
-## Pipeline
+## Architecture
 
+```mermaid
+flowchart LR
+    S["Scraper<br/>CafeF, VnExpress<br/>4,125 news items"] --> L["Labeling<br/>LLM draft + author review<br/>560 train, 100 blind test"]
+    L -->|train| PB["PhoBERT<br/>fine-tuned on Colab<br/>Hugging Face Hub"]
+    subgraph G["LangGraph pipeline"]
+        C["Classify (LLM)<br/>6 labels"] --> T["VN30 tickers<br/>alias dictionary"]
+        T -->|event| X["Explain (LLM)<br/>for beginners"]
+        T -->|other| F["Fixed text"]
+    end
+    L -->|test labels| CMP["Blind test comparison<br/>McNemar, bootstrap"]
+    PB --> CMP
+    C --> CMP
+    S --> EV["Event list<br/>single-ticker news"]
+    C -->|labels| EV
+    K["KBS daily prices"] --> DB["DuckDB + SQL<br/>abnormal returns"]
+    EV --> DB
+    DB --> SUM["Stats by label<br/>t-test, Wilcoxon"]
+    G --> APP["Streamlit app"]
+    SUM --> APP
 ```
-Scraping (CafeF, VnExpress, 4,125 items)
-  -> Labeling (LLM draft, author review: 560 train items; 100 blind test items)
-  -> Classification
-       - LLM + LangGraph: classify -> VN30 tickers -> beginner explanation
-       - Fine-tuned PhoBERT (compared with the LLM on the blind test set)
-  -> Event study (LLM labels + daily prices from KBS, in DuckDB)
-  -> Streamlit app (LLM pipeline + event study summary)
-```
+
+- **Labeling**: an LLM drafts a label for every news item; the author reviews the
+  training set and labels the test set blind.
+- **LangGraph pipeline**: one LLM call classifies the news, a dictionary finds the
+  VN30 tickers named in the title, and a second LLM call explains event news for
+  beginners (`other` news gets a fixed text). This powers the app.
+- **PhoBERT** is trained on the same labels and compared with the LLM classifier
+  on the blind test set.
+- **Event study**: news tied to one VN30 ticker, labeled by a human or the LLM, is
+  joined with daily prices in DuckDB; abnormal returns are computed in SQL and
+  summarized by label. The app shows this summary next to each result.
 
 ## Data
 
